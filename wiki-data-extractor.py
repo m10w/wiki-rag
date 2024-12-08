@@ -5,7 +5,6 @@ import os
 import azure.functions as func
 import azure.storage.blob as azure_blob
 from azure.identity import DefaultAzureCredential
-from unittest.mock import MagicMock
 
 
 def main(mytimer: func.TimerRequest) -> None:
@@ -46,5 +45,4 @@ def main(mytimer: func.TimerRequest) -> None:
         logging.error(f"Failed to upload data to Azure Blob Storage: {e}")
 
 if __name__ == "__main__":
-    mock_timer = MagicMock()
-    main(mock_timer)
+    main(func.TimerRequest())
