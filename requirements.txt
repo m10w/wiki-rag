@@ -18,3 +18,5 @@ setuptools
 six
 typing_extensions
 urllib3
+wikipedia-api
+python-dotenv
