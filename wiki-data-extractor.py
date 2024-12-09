@@ -1,48 +1,134 @@
-import requests
 import logging
 import json
-import os
-import azure.functions as func
-import azure.storage.blob as azure_blob
-from azure.identity import DefaultAzureCredential
+import wikipediaapi
+from helpers import upload_to_blob
 
+def extract_and_upload_wiki_data(topics, container_name):
+    wiki_wiki = wikipediaapi.Wikipedia(user_agent='WikiDataExtractor/1.0 (hamed2005@gmail.com)', language='en')
 
-def main(mytimer: func.TimerRequest) -> None:
-    logging.info('Wikipedia Data Extraction started.')
+    for topic in topics:
+        logging.info(f"Extracting data for: {topic}")
+        page = wiki_wiki.page(topic)
+        if page.exists():
+            topic_data = {
+                "title": page.title,
+                "summary": page.summary,
+                "sections": [s.title for s in page.sections],
+                "categories": list(page.categories.keys()),
+                "content": page.text,
+            }
+            json_data = json.dumps(topic_data, indent=4)
 
-    # Wikipedia API URL
-    url = "https://en.wikipedia.org/w/api.php"
-    params = {
-        "action": "query",
-        "format": "json",
-        "prop": "extracts",
-        "titles": "Artificial Intelligence|Cloud Computing|Generative AI|RAG|Large Language Models",  # Example topics
-        "explaintext": True,
-    }
+            # Blob name will be the topic title with spaces replaced by underscores
+            blob_name = f'{topic.replace(' ', '_')}.json'
 
-    response = requests.get(url, params=params)
-    if response.status_code != 200:
-        logging.error(f"Failed to fetch data: {response.status_code}")
-        return
+            # upload to Blob storage
+            upload_to_blob(json_data, container_name, blob_name)
 
-    data = response.json()
+        else:
+            logging.info(f"Page '{topic}' does not exist.")
 
-    # Azure Blob Storage setup
-    try:
-        connection_string = os.getenv("AZURE_BLOB_CONNECTION_STRING")
-        container_name = "wiki-data"
-        blob_name = "data.json"
-
-        # Upload to Blob
-        blob_service_client = azure_blob.BlobServiceClient.from_connection_string(connection_string)
-        blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
-
-        json_data = json.dumps(data)
-        blob_client.upload_blob(json_data, overwrite=True)
-        logging.info("Data uploaded to Azure Blob Storage.")
-
-    except Exception as e:
-        logging.error(f"Failed to upload data to Azure Blob Storage: {e}")
 
 if __name__ == "__main__":
-    main(func.TimerRequest())
+    topics = [
+    "Artificial Intelligence",
+    "Machine Learning",
+    "Deep Learning",
+    "Natural Language Processing",
+    "Large Language Models",
+    "Transformers (machine learning model)",
+    "Neural Networks",
+    "Reinforcement Learning",
+    "Supervised Learning",
+    "Unsupervised Learning",
+    "Semi-supervised Learning",
+    "Self-supervised Learning",
+    "Statistical Learning",
+    "Bayesian Networks",
+    "Probabilistic Graphical Models",
+    "Support Vector Machines",
+    "Decision Trees",
+    "Random Forests",
+    "Gradient Boosting",
+    "K-Nearest Neighbors",
+    "Clustering Algorithms",
+    "Principal Component Analysis",
+    "Linear Regression",
+    "Logistic Regression",
+    "Optimization in Machine Learning",
+    "Backpropagation",
+    "Convolutional Neural Networks",
+    "Recurrent Neural Networks",
+    "Long Short-Term Memory (LSTM)",
+    "Attention Mechanism",
+    "Sequence-to-Sequence Models",
+    "Word Embeddings",
+    "Tokenization in NLP",
+    "Text Summarization",
+    "Text Classification",
+    "Sentiment Analysis",
+    "Question Answering Systems",
+    "Pretrained Models in NLP",
+    "Fine-Tuning in NLP",
+    "Zero-Shot Learning",
+    "Few-Shot Learning",
+    "Meta-Learning",
+    "Generative Adversarial Networks (GANs)",
+    "Autoencoders",
+    "Variational Autoencoders",
+    "Contrastive Learning",
+    "Self-Attention",
+    "Explainable AI",
+    "Interpretable Machine Learning",
+    "Fairness in Machine Learning",
+    "Bias in AI",
+    "Ethical AI",
+    "AI Safety",
+    "Adversarial Attacks in AI",
+    "Robust Machine Learning",
+    "Differential Privacy",
+    "Federated Learning",
+    "Distributed Machine Learning",
+    "Information Theory",
+    "Entropy in Information Theory",
+    "Mutual Information",
+    "KL Divergence",
+    "Cross-Entropy Loss",
+    "Shannon's Information Theory",
+    "Model Compression",
+    "Knowledge Distillation",
+    "Transfer Learning",
+    "Multimodal Machine Learning",
+    "Human-in-the-Loop AI",
+    "Active Learning",
+    "Bayesian Optimization",
+    "Hyperparameter Tuning",
+    "Markov Chains",
+    "Monte Carlo Methods",
+    "Expectation-Maximization Algorithm",
+    "Graph Neural Networks",
+    "Sparse Neural Networks",
+    "Transformers in Vision",
+    "Vision-Language Models",
+    "Diffusion Models in AI",
+    "OpenAI GPT Models",
+    "BERT (Bidirectional Encoder Representations from Transformers)",
+    "ChatGPT",
+    "Google DeepMind",
+    "AlphaGo",
+    "AI Ethics and Policy",
+    "Responsible AI",
+    "Regulation of AI",
+    "History of AI",
+    "Applications of AI",
+    "AI in Healthcare",
+    "AI in Finance",
+    "AI in Education",
+    "AI in Autonomous Vehicles",
+    "Causal Inference in AI",
+    "Reproducibility in AI",
+    "Computational Complexity in AI",
+    "Sparse Representations in AI"
+]
+    container_name = "wiki-data"
+    extract_and_upload_wiki_data(topics, container_name)
