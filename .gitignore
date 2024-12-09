@@ -1,2 +1,4 @@
 .idea/
 wiki-rag-venv
+.env
+__pycache__/
